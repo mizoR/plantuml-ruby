@@ -4,6 +4,9 @@ require 'tempfile'
 require 'open3'
 
 module PlantUML
+  class Error < StandardError
+  end
+
   class << self
     def root
       Pathname.new(__dir__).join('..')
@@ -18,15 +21,18 @@ module PlantUML
     end
 
     def run(script)
-      cmdline = [java, '-jar', jar, '-p'].join(' ')
-      Open3.popen3(cmdline) do |stdin, stdout, stderr|
-        stdin.puts(script)
-        stdin.close
+      cmd = [java, '-jar', jar, '-p'].join(' ')
 
-        Tempfile.open do |t|
-          t.puts(stdout.read)
-          t
-        end
+      Open3.popen3(cmd) do |i, o, e, w|
+        i.puts(script)
+        i.close
+
+        err = e.read
+        raise Error, err unless w.value.success? && err.empty?
+
+        file = Tempfile.open { |t| t.puts(o.read); t }
+        file.close
+        file
       end
     end
   end
