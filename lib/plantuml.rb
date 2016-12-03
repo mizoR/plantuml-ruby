@@ -21,7 +21,7 @@ module PlantUML
     end
 
     def run(script)
-      cmd = [java, '-jar', jar, '-p'].join(' ')
+      cmd = [java, '-Djava.awt.headless=true', '-jar', jar, '-p'].join(' ')
 
       Open3.popen3(cmd) do |i, o, e, w|
         i.puts(script)
