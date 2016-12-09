@@ -12,7 +12,7 @@ module PlantUML
       Pathname.new(__dir__).join('..')
     end
 
-    def java
+    def java_cmd
       @java ||= Pathname.new(`which java`.chomp)
     end
 
@@ -21,7 +21,14 @@ module PlantUML
     end
 
     def run(script)
-      cmd = [java, '-Djava.awt.headless=true', '-jar', jar, '-p'].join(' ')
+      if defined? JRUBY_VERSION
+
+        java.lang.System.out.println('Hello JRuby')
+
+        return
+      end
+
+      cmd = [java_cmd, '-Djava.awt.headless=true', '-jar', jar, '-p'].join(' ')
 
       Open3.popen3(cmd) do |i, o, e, w|
         i.puts(script)
