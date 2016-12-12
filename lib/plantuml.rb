@@ -1,46 +1,34 @@
 require 'plantuml/version'
 require 'pathname'
-require 'tempfile'
-require 'open3'
+
+unless defined? JRUBY_VERSION
+  raise 'JRuby is required.'
+end
+
+module JavaPlantUML
+  JAR = Pathname.new(__dir__).join('..').join('vendor/plantuml/plantuml.8050.jar')
+  PACKAGE = 'net.sourceforge.plantuml'
+
+  require JAR
+  include_package PACKAGE
+end
+
+module JavaIO
+  PACKAGE = 'java.io'
+  include_package PACKAGE
+end
 
 module PlantUML
   class Error < StandardError
   end
 
   class << self
-    def root
-      Pathname.new(__dir__).join('..')
-    end
-
-    def java_cmd
-      @java ||= Pathname.new(`which java`.chomp)
-    end
-
-    def jar
-      @jar ||= root.join('vendor/plantuml/plantuml.8050.jar')
-    end
-
     def run(script)
-      if defined? JRUBY_VERSION
+      file = JavaIO::File.createTempFile('plantuml', '.png')
 
-        java.lang.System.out.println('Hello JRuby')
+      raise Error unless JavaPlantUML::SourceStringReader.new(script).generateImage(file)
 
-        return
-      end
-
-      cmd = [java_cmd, '-Djava.awt.headless=true', '-jar', jar, '-p'].join(' ')
-
-      Open3.popen3(cmd) do |i, o, e, w|
-        i.puts(script)
-        i.close
-
-        err = e.read
-        raise Error, err unless w.value.success? && err.empty?
-
-        file = Tempfile.open { |t| t.puts(o.read); t }
-        file.close
-        file
-      end
+      file
     end
   end
 end
